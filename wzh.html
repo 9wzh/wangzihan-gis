@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>保定市地图 - 天地图</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background: #f0f2f5;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .header {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 30px;
+            border-radius: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 20px;
+            color: #2c3e50;
+            font-weight: 600;
+            letter-spacing: 2px;
+        }
+
+        .header .subtitle {
+            font-size: 12px;
+            color: #7f8c8d;
+            text-align: center;
+            margin-top: 2px;
+        }
+
+        .map-wrapper {
+            width: 95%;
+            height: 88%;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #e8ecf1;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 缩放控制按钮 */
+        .zoom-controls {
+            position: absolute;
+            right: 20px;
+            bottom: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 500;
+        }
+
+        .zoom-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            font-size: 20px;
+            color: #2c3e50;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 300;
+        }
+
+        .zoom-btn:hover {
+            background: #3498db;
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .zoom-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 图例 */
+        .legend {
+            position: absolute;
+            left: 20px;
+            bottom: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+            z-index: 500;
+            min-width: 180px;
+        }
+
+        .legend-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 6px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 6px 0;
+            font-size: 12px;
+            color: #555;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .legend-dot.district { background: #e74c3c; }
+        .legend-dot.county { background: #f39c12; }
+        .legend-dot.city { background: #9b59b6; }
+
+        /* 信息面板 */
+        .info-panel {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            z-index: 500;
+            min-width: 220px;
+            max-width: 280px;
+            opacity: 0;
+            transform: translateX(20px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .info-panel.active {
+            opacity: 1;
+            transform: translateX(0);
+            pointer-events: auto;
+        }
+
+        .info-panel h3 {
+            font-size: 16px;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 6px;
+        }
+
+        .info-panel .info-type {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .info-panel .info-type.district-type { background: #e74c3c; }
+        .info-panel .info-type.county-type { background: #f39c12; }
+        .info-panel .info-type.city-type { background: #9b59b6; }
+
+        .info-panel p {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.6;
+            margin: 4px 0;
+        }
+
+        .info-panel .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: none;
+            font-size: 18px;
+            color: #999;
+            cursor: pointer;
+            line-height: 24px;
+        }
+
+        .info-panel .close-btn:hover {
+            color: #e74c3c;
+        }
+
+        /* 缩放比例显示 */
+        .zoom-level {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #666;
+            z-index: 500;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        /* 提示文字 */
+        .hint {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: #999;
+            z-index: 500;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 4px 12px;
+            border-radius: 12px;
+        }
+
+        /* 重置按钮 */
+        .reset-btn {
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            font-size: 16px;
+            color: #2c3e50;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 500;
+        }
+
+        .reset-btn:hover {
+            background: #e74c3c;
+            color: white;
+            transform: scale(1.1);
+        }
+
+        /* 加载动画 */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 14px;
+            color: #666;
+            z-index: 2000;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #3498db;
+            border-top-color: transparent;
+            border-radius: 50%;
+            margin-left: 8px;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 地图类型切换 */
+        .map-type-switch {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            display: flex;
+            gap: 4px;
+            z-index: 500;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 4px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .map-type-btn {
+            padding: 6px 12px;
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .map-type-btn.active {
+            background: #3498db;
+            color: white;
+        }
+
+        .map-type-btn:hover:not(.active) {
+            background: #f0f0f0;
+        }
+    </style>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗺️ 保定市行政区划地图</h1>
+            <div class="subtitle">基于天地图 · 支持缩放平移 · 点击查看详情</div>
+        </div>
+
+        <div class="map-wrapper">
+            <div class="loading" id="loading">正在加载天地图数据...</div>
+            <div id="map"></div>
+
+            <div class="map-type-switch">
+                <button class="map-type-btn active" data-type="vec">矢量</button>
+                <button class="map-type-btn" data-type="img">影像</button>
+                <button class="map-type-btn" data-type="ter">地形</button>
+            </div>
+
+            <div class="zoom-level" id="zoomLevel">缩放: 10级</div>
+
+            <div class="zoom-controls">
+                <button class="zoom-btn" id="zoomIn" title="放大">+</button>
+                <button class="zoom-btn" id="zoomOut" title="缩小">−</button>
+            </div>
+
+            <button class="reset-btn" id="resetBtn" title="重置视图">⌂</button>
+
+            <div class="legend">
+                <div class="legend-title">📍 图例说明</div>
+                <div class="legend-item">
+                    <div class="legend-dot district"></div>
+                    <span>市辖区（5个）</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot county"></div>
+                    <span>县（15个）</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot city"></div>
+                    <span>县级市（4个）</span>
+                </div>
+            </div>
+
+            <div class="info-panel" id="infoPanel">
+                <button class="close-btn" id="closeInfo">×</button>
+                <h3 id="infoName">--</h3>
+                <span class="info-type" id="infoType">--</span>
+                <p id="infoDesc">--</p>
+                <p id="infoCoord">--</p>
+            </div>
+
+            <div class="hint">🖱️ 滚轮缩放 · ✋ 拖拽移动 · 👆 点击查看详情</div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // ==================== 数据定义 ====================
+        const regionsData = [
+            { id: 'jingxiu', name: '竞秀区', type: 'district', typeName: '市辖区', center: [38.877, 115.464], desc: '保定市人民政府驻地，政治、经济、金融、传媒中心。' },
+            { id: 'lianchi', name: '莲池区', type: 'district', typeName: '市辖区', center: [38.856, 115.502], desc: '保定历史文化名城核心区，拥有直隶总督署、古莲花池等。' },
+            { id: 'mancheng', name: '满城区', type: 'district', typeName: '市辖区', center: [38.948, 115.316], desc: '位于保定市区西北部，距北京150公里。' },
+            { id: 'qingyuan', name: '清苑区', type: 'district', typeName: '市辖区', center: [38.757, 115.485], desc: '位于保定市区南部，重要的农业和工业基地。' },
+            { id: 'xushui', name: '徐水区', type: 'district', typeName: '市辖区', center: [39.019, 115.657], desc: '位于保定市区东北部，京广铁路、京深高速纵贯全境。' },
+            { id: 'laishui', name: '涞水县', type: 'county', typeName: '县', center: [39.392, 115.708], desc: '位于保定市西北部，太行山东麓，有野三坡等景区。' },
+            { id: 'fuping', name: '阜平县', type: 'county', typeName: '县', center: [38.853, 114.188], desc: '位于保定市西部，太行山深处，革命老区。' },
+            { id: 'dingxing', name: '定兴县', type: 'county', typeName: '县', center: [39.270, 115.774], desc: '位于保定市东北部，元曲名家王实甫的故乡。' },
+            { id: 'tangxian', name: '唐县', type: 'county', typeName: '县', center: [38.741, 114.969], desc: '位于保定市西部，古称唐国，尧帝故里。' },
+            { id: 'gaoyang', name: '高阳县', type: 'county', typeName: '县', center: [38.689, 115.774], desc: '位于保定市东南部，著名的纺织之乡。' },
+            { id: 'rongcheng', name: '容城县', type: 'county', typeName: '县', center: [39.052, 115.866], desc: '雄安新区组成部分，北方重要的商贸集散地。' },
+            { id: 'laiyuan', name: '涞源县', type: 'county', typeName: '县', center: [39.354, 114.689], desc: '位于保定市最西北部，地处太行山北端。' },
+            { id: 'wangdu', name: '望都县', type: 'county', typeName: '县', center: [38.705, 115.133], desc: '位于保定市西南部，古称庆都，以辣椒种植闻名。' },
+            { id: 'anxin', name: '安新县', type: 'county', typeName: '县', center: [38.925, 115.928], desc: '白洋淀主体位于境内，雄安新区重要组成部分。' },
+            { id: 'yixian', name: '易县', type: 'county', typeName: '县', center: [39.349, 115.493], desc: '清西陵所在地，狼牙山五壮士故事发生地。' },
+            { id: 'quyang', name: '曲阳县', type: 'county', typeName: '县', center: [38.621, 114.690], desc: '中国雕刻之乡，北岳庙所在地。' },
+            { id: 'lixian', name: '蠡县', type: 'county', typeName: '县', center: [38.490, 115.575], desc: '位于保定市南部，以皮毛加工著称。' },
+            { id: 'shunping', name: '顺平县', type: 'county', typeName: '县', center: [38.833, 115.124], desc: '位于保定市西部，中国桃乡。' },
+            { id: 'boye', name: '博野县', type: 'county', typeName: '县', center: [38.458, 115.459], desc: '位于保定市南部，东汉名臣刘茂的故乡。' },
+            { id: 'xiongxian', name: '雄县', type: 'county', typeName: '县', center: [38.990, 116.100], desc: '雄安新区组成部分，中国温泉之乡。' },
+            { id: 'zhuozhou', name: '涿州市', type: 'city', typeName: '县级市', center: [39.487, 115.968], desc: '距北京仅60公里，刘备、张飞故里。' },
+            { id: 'dingzhou', name: '定州市', type: 'city', typeName: '县级市', center: [38.520, 114.975], desc: '河北省直管试点，中山古国故地。' },
+            { id: 'anguo', name: '安国市', type: 'city', typeName: '县级市', center: [38.412, 115.315], desc: '中国著名的中药材集散地，药都。' },
+            { id: 'gaobeidian', name: '高碑店市', type: 'city', typeName: '县级市', center: [39.326, 115.859], desc: '位于保定市北部，毗邻北京，商贸物流基地。' }
+        ];
+
+        // 颜色配置
+        const colors = {
+            district: '#e74c3c',
+            county: '#f39c12',
+            city: '#9b59b6'
+        };
+
+        // ==================== 初始化地图 ====================
+        let map;
+        let markers = [];
+        let currentMapType = 'vec';
+
+        function initMap() {
+            // 创建地图，中心定位在保定市
+            map = L.map('map', {
+                center: [38.8739, 115.4646],
+                zoom: 10,
+                minZoom: 8,
+                maxZoom: 18,
+                zoomControl: false,
+                attributionControl: false
+            });
+
+            // 添加天地图底图
+            addTileLayer('vec');
+
+            // 添加行政区划标记
+            addRegionMarkers();
+
+            // 绑定事件
+            map.on('zoomend', updateZoomLevel);
+            map.on('click', function(e) {
+                // 点击空白处关闭信息面板
+                if (!e.originalEvent.target.closest('.leaflet-marker-icon')) {
+                    document.getElementById('infoPanel').classList.remove('active');
+                }
+            });
+
+            // 隐藏加载
+            document.getElementById('loading').style.display = 'none';
+            updateZoomLevel();
+        }
+
+        // ==================== 天地图瓦片层 ====================
+        function addTileLayer(type) {
+            // 移除现有图层
+            map.eachLayer(function(layer) {
+                if (layer instanceof L.TileLayer) {
+                    map.removeLayer(layer);
+                }
+            });
+
+            let url, subdomains;
+
+            switch(type) {
+                case 'vec': // 矢量地图
+                    url = 'https://t{s}.tianditu.gov.cn/vec_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=vec&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&tk=174705aebfe31b79b3587279e211cb9a';
+                    subdomains = ['0', '1', '2', '3', '4', '5', '6', '7'];
+                    break;
+                case 'img': // 影像地图
+                    url = 'https://t{s}.tianditu.gov.cn/img_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=img&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&tk=174705aebfe31b79b3587279e211cb9a';
+                    subdomains = ['0', '1', '2', '3', '4', '5', '6', '7'];
+                    break;
+                case 'ter': // 地形地图
+                    url = 'https://t{s}.tianditu.gov.cn/ter_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ter&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&tk=174705aebfe31b79b3587279e211cb9a';
+                    subdomains = ['0', '1', '2', '3', '4', '5', '6', '7'];
+                    break;
+            }
+
+            L.tileLayer(url, {
+                subdomains: subdomains,
+                maxZoom: 18,
+                minZoom: 3
+            }).addTo(map);
+
+            // 添加注记层
+            const labelUrl = 'https://t{s}.tianditu.gov.cn/cva_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=cva&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&tk=174705aebfe31b79b3587279e211cb9a';
+            L.tileLayer(labelUrl, {
+                subdomains: ['0', '1', '2', '3', '4', '5', '6', '7'],
+                maxZoom: 18,
+                minZoom: 3
+            }).addTo(map);
+        }
+
+        // ==================== 添加区域标记 ====================
+        function addRegionMarkers() {
+            // 清除旧标记
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+
+            regionsData.forEach(region => {
+                const color = colors[region.type];
+
+                // 创建脉冲圆圈
+                const pulseIcon = L.divIcon({
+                    className: 'pulse-marker',
+                    html: `<div style="
+                        width: 16px; 
+                        height: 16px; 
+                        background: ${color}; 
+                        border-radius: 50%; 
+                        border: 3px solid white; 
+                        box-shadow: 0 0 0 0 ${color};
+                        animation: pulse 2s infinite;
+                        cursor: pointer;
+                    "></div>`,
+                    iconSize: [16, 16],
+                    iconAnchor: [8, 8]
+                });
+
+                const marker = L.marker(region.center, { icon: pulseIcon })
+                    .addTo(map)
+                    .on('click', function(e) {
+                        L.DomEvent.stopPropagation(e);
+                        showInfo(region);
+                    });
+
+                // 添加标签
+                const labelIcon = L.divIcon({
+                    className: 'region-label',
+                    html: `<div style="
+                        background: rgba(255,255,255,0.9); 
+                        padding: 2px 8px; 
+                        border-radius: 4px; 
+                        font-size: 12px; 
+                        font-weight: 600; 
+                        color: #333; 
+                        white-space: nowrap;
+                        box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+                        pointer-events: none;
+                        transform: translateY(-20px);
+                    ">${region.name}</div>`,
+                    iconSize: [80, 20],
+                    iconAnchor: [40, 20]
+                });
+
+                const labelMarker = L.marker(region.center, { 
+                    icon: labelIcon,
+                    zIndexOffset: -1000
+                }).addTo(map);
+
+                markers.push(marker, labelMarker);
+            });
+        }
+
+        // ==================== 显示信息面板 ====================
+        function showInfo(region) {
+            document.getElementById('infoName').textContent = region.name;
+            const typeEl = document.getElementById('infoType');
+            typeEl.textContent = region.typeName;
+            typeEl.className = 'info-type ' + region.type + '-type';
+            document.getElementById('infoDesc').textContent = region.desc;
+            document.getElementById('infoCoord').textContent = 
+                `📍 ${region.center[0].toFixed(3)}°N, ${region.center[1].toFixed(3)}°E`;
+            document.getElementById('infoPanel').classList.add('active');
+        }
+
+        // ==================== 更新缩放级别显示 ====================
+        function updateZoomLevel() {
+            document.getElementById('zoomLevel').textContent = `缩放: ${map.getZoom()}级`;
+        }
+
+        // ==================== 按钮事件 ====================
+        document.getElementById('zoomIn').addEventListener('click', () => {
+            map.zoomIn();
+        });
+
+        document.getElementById('zoomOut').addEventListener('click', () => {
+            map.zoomOut();
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            map.setView([38.8739, 115.4646], 10);
+            document.getElementById('infoPanel').classList.remove('active');
+        });
+
+        document.getElementById('closeInfo').addEventListener('click', () => {
+            document.getElementById('infoPanel').classList.remove('active');
+        });
+
+        // 地图类型切换
+        document.querySelectorAll('.map-type-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.map-type-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentMapType = this.dataset.type;
+                addTileLayer(currentMapType);
+            });
+        });
+
+        // ==================== CSS动画 ====================
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse {
+                0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
+                70% { box-shadow: 0 0 0 12px rgba(231, 76, 60, 0); }
+                100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+            }
+            .pulse-marker {
+                background: transparent !important;
+                border: none !important;
+            }
+            .leaflet-container {
+                background: #f0f4f8;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // ==================== 启动 ====================
+        window.onload = initMap;
+    </script>
+</body>
+</html>
